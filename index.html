@@ -893,8 +893,85 @@
             setupAdBlocker();
         });
 
-        // Toggle ad block protection
-        let adBlockEnabled = true;
+        // حماية شاملة لكامل الصفحة
+        function blockAllAdsInPage() {
+            // منع جميع أنواع النوافذ المنبثقة
+            window.open = function() {
+                showNotification('🛡️ تم منع نافذة منبثقة', 'success');
+                return null;
+            };
+
+            // منع الإعلانات المتأخرة
+            const killAds = () => {
+                const adSelectors = [
+                    '[class*="ad"]', '[id*="ad"]', '[class*="popup"]', '[id*="popup"]',
+                    '[class*="banner"]', '[id*="banner"]', '[class*="overlay"]', '[id*="overlay"]',
+                    '[class*="modal"]', '[id*="modal"]', '.advertisement', '.popup', '.overlay',
+                    '.modal-ad', '.interstitial', '.ad-container', '.ads', '.popup-ad',
+                    '.banner-ad', '.video-ad', '[data-ad]', '[data-popup]', '[data-banner]',
+                    'div[style*="position: fixed"][style*="z-index"]',
+                    'div[style*="position: absolute"][style*="z-index"]'
+                ];
+
+                adSelectors.forEach(selector => {
+                    try {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(el => {
+                            if (!el.closest('.movie-card') && 
+                                !el.closest('.video-container') && 
+                                !el.closest('.notification') &&
+                                !el.closest('.modal-content')) {
+                                el.style.display = 'none !important';
+                                el.style.visibility = 'hidden !important';
+                                el.style.opacity = '0 !important';
+                                el.remove();
+                            }
+                        });
+                    } catch (e) {
+                        // تجاهل الأخطاء
+                    }
+                });
+            };
+
+            // تنفيذ فوري ومتكرر
+            killAds();
+            setInterval(killAds, 500);
+
+            // منع الإعلانات الجديدة
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1 && node.tagName) {
+                                // فحص العنصر الجديد
+                                const isAd = node.className && (
+                                    node.className.includes('ad') ||
+                                    node.className.includes('popup') ||
+                                    node.className.includes('banner') ||
+                                    node.className.includes('overlay')
+                                ) || node.id && (
+                                    node.id.includes('ad') ||
+                                    node.id.includes('popup') ||
+                                    node.id.includes('banner')
+                                );
+
+                                if (isAd && !node.closest('.movie-card') && !node.closest('.video-container')) {
+                                    node.remove();
+                                    showNotification('🛡️ تم منع إعلان جديد', 'success');
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class', 'id', 'style']
+            });
+        }
         function toggleAdBlock() {
             adBlockEnabled = !adBlockEnabled;
             const btn = document.getElementById('adBlockBtn');
@@ -916,94 +993,187 @@
             }
         }
 
-        // حماية شاملة للمشغل ضد جميع أنواع الإعلانات
+        // حماية شاملة ومطلقة ضد جميع أنواع الإعلانات
         function protectVideoPlayer() {
             if (!adBlockEnabled) return;
 
-            // منع جميع النوافذ المنبثقة من المشغل
+            // 1. منع جميع النوافذ المنبثقة بطريقة مطلقة
             const originalOpen = window.open;
-            window.open = function(url, name, specs) {
-                console.log('Blocked popup attempt:', url);
-                showNotification('تم منع نافذة منبثقة', 'success');
-                return { 
-                    closed: false, 
-                    close: function(){}, 
-                    focus: function(){} 
+            const originalAlert = window.alert;
+            const originalConfirm = window.confirm;
+            const originalPrompt = window.prompt;
+
+            window.open = function() {
+                console.log('🛡️ تم منع نافذة منبثقة');
+                showNotification('تم منع إعلان منبثق', 'success');
+                return {
+                    closed: true,
+                    close: function(){},
+                    focus: function(){},
+                    blur: function(){},
+                    postMessage: function(){}
                 };
             };
 
-            // منع جميع أحداث النقر المشبوهة
+            window.alert = function() { return false; };
+            window.confirm = function() { return false; };
+            window.prompt = function() { return null; };
+
+            // 2. منع جميع النقرات المشبوهة على المشغل
             document.addEventListener('click', function(e) {
+                if (!adBlockEnabled) return;
+
                 const target = e.target;
                 const iframe = target.closest('iframe');
                 
                 if (iframe && iframe.classList.contains('video-iframe')) {
-                    // السماح بالنقر على controls الأساسية فقط
-                    const allowedClicks = ['BUTTON', 'VIDEO', 'AUDIO'];
-                    if (!allowedClicks.includes(target.tagName)) {
+                    // منع أي نقرة ليست على controls الفيديو
+                    const allowedElements = ['VIDEO', 'AUDIO', 'BUTTON', 'INPUT'];
+                    const allowedClasses = ['vjs-', 'plyr-', 'video-js', 'controls'];
+                    
+                    const isAllowed = allowedElements.includes(target.tagName) || 
+                                    allowedClasses.some(cls => target.className.includes(cls));
+                    
+                    if (!isAllowed) {
                         e.preventDefault();
-                        e.stopPropagation();
-                        showNotification('تم منع نقرة مشبوهة في المشغل', 'warning');
+                        e.stopImmediatePropagation();
+                        showNotification('تم منع نقرة إعلانية', 'warning');
                         return false;
                     }
                 }
             }, true);
 
-            // منع الإعلانات في iframe
+            // 3. منع النقرات المزدوجة والسريعة
+            let lastClickTime = 0;
+            let clickCount = 0;
+            
+            document.addEventListener('click', function(e) {
+                const now = Date.now();
+                const timeDiff = now - lastClickTime;
+                
+                if (timeDiff < 300) {
+                    clickCount++;
+                    if (clickCount > 1) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        showNotification('تم منع نقرات متعددة', 'warning');
+                        return false;
+                    }
+                } else {
+                    clickCount = 0;
+                }
+                
+                lastClickTime = now;
+            }, true);
+
+            // 4. حماية iframe مع sandbox قوي
             document.querySelectorAll('.video-iframe').forEach(iframe => {
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+                iframe.style.pointerEvents = 'auto';
+                
+                // منع الإعلانات داخل iframe
                 iframe.onload = function() {
                     try {
                         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
                         
-                        // حقن CSS لإخفاء الإعلانات
+                        // حقن CSS قوي جداً
                         const style = iframeDoc.createElement('style');
                         style.textContent = `
+                            /* إخفاء جميع أنواع الإعلانات */
                             [class*="ad"], [id*="ad"], [class*="popup"], [id*="popup"],
                             [class*="banner"], [id*="banner"], [class*="promo"], [id*="promo"],
-                            .advertisement, .popup, .overlay, .modal-ad, .interstitial {
+                            [class*="overlay"], [id*="overlay"], [class*="modal"], [id*="modal"],
+                            .advertisement, .popup, .overlay, .modal-ad, .interstitial,
+                            .ad-container, .ads, .popup-ad, .banner-ad, .video-ad,
+                            [data-ad], [data-popup], [data-banner] {
                                 display: none !important;
                                 visibility: hidden !important;
                                 opacity: 0 !important;
                                 pointer-events: none !important;
+                                position: absolute !important;
+                                left: -9999px !important;
+                                top: -9999px !important;
+                                width: 0 !important;
+                                height: 0 !important;
+                                z-index: -9999 !important;
+                            }
+                            
+                            /* منع الإعلانات المتحركة */
+                            * {
+                                animation: none !important;
+                                transition: none !important;
+                            }
+                            
+                            /* حماية الفيديو */
+                            video {
+                                pointer-events: auto !important;
                             }
                         `;
                         iframeDoc.head.appendChild(style);
 
-                        // منع النقرات المشبوهة داخل iframe
+                        // منع جميع النقرات المشبوهة داخل iframe
                         iframeDoc.addEventListener('click', function(e) {
                             const target = e.target;
-                            if (target.tagName === 'A' || target.closest('a')) {
+                            if (target.tagName === 'A' || target.closest('a') || 
+                                target.className.includes('ad') || target.id.includes('ad')) {
                                 e.preventDefault();
-                                e.stopPropagation();
+                                e.stopImmediatePropagation();
                                 return false;
                             }
                         }, true);
 
+                        // منع keyboard shortcuts للإعلانات
+                        iframeDoc.addEventListener('keydown', function(e) {
+                            if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ') {
+                                const target = e.target;
+                                if (target.className.includes('ad') || target.id.includes('ad')) {
+                                    e.preventDefault();
+                                    return false;
+                                }
+                            }
+                        });
+
                     } catch (err) {
                         console.log('Cross-origin iframe - using external protection');
+                        // حماية خارجية للـ iframe
+                        iframe.style.border = 'none';
+                        iframe.style.outline = 'none';
                     }
                 };
             });
 
-            // مراقبة مستمرة للإعلانات الجديدة
+            // 5. مراقبة DOM مستمرة وقوية
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     mutation.addedNodes.forEach(function(node) {
                         if (node.nodeType === 1) {
-                            // إزالة أي إعلانات جديدة
+                            // قائمة شاملة بجميع أنواع الإعلانات
                             const adSelectors = [
-                                '[class*="ad"]', '[id*="ad"]', '[class*="popup"]', 
-                                '[id*="popup"]', '[class*="banner"]', '.advertisement',
-                                '.overlay', '.modal-ad', '.interstitial'
+                                '[class*="ad"]', '[id*="ad"]', '[class*="popup"]', '[id*="popup"]',
+                                '[class*="banner"]', '[id*="banner"]', '[class*="promo"]', '[id*="promo"]',
+                                '[class*="overlay"]', '[id*="overlay"]', '[class*="modal"]', '[id*="modal"]',
+                                '.advertisement', '.popup', '.overlay', '.modal-ad', '.interstitial',
+                                '.ad-container', '.ads', '.popup-ad', '.banner-ad', '.video-ad',
+                                '[data-ad]', '[data-popup]', '[data-banner]', 'iframe[src*="ad"]',
+                                'div[style*="position: fixed"]', 'div[style*="z-index: 999"]'
                             ];
                             
                             adSelectors.forEach(selector => {
-                                const ads = node.querySelectorAll ? node.querySelectorAll(selector) : [];
-                                ads.forEach(ad => {
-                                    ad.style.display = 'none';
-                                    ad.style.visibility = 'hidden';
-                                    ad.remove();
-                                });
+                                try {
+                                    const ads = node.querySelectorAll ? node.querySelectorAll(selector) : [];
+                                    ads.forEach(ad => {
+                                        if (ad && !ad.closest('.movie-card') && !ad.closest('.video-container')) {
+                                            ad.style.display = 'none';
+                                            ad.style.visibility = 'hidden';
+                                            ad.style.opacity = '0';
+                                            ad.style.pointerEvents = 'none';
+                                            ad.remove();
+                                            console.log('🛡️ تم حذف إعلان:', ad);
+                                        }
+                                    });
+                                } catch (e) {
+                                    console.log('خطأ في إزالة الإعلان:', e);
+                                }
                             });
                         }
                     });
@@ -1014,8 +1184,22 @@
                 childList: true,
                 subtree: true,
                 attributes: true,
-                attributeFilter: ['class', 'id', 'style']
+                attributeFilter: ['class', 'id', 'style', 'src']
             });
+
+            // 6. حماية ضد الإعلانات المتأخرة
+            setInterval(() => {
+                if (adBlockEnabled) {
+                    const suspiciousElements = document.querySelectorAll(
+                        '[class*="ad"], [id*="ad"], [class*="popup"], .overlay, .modal-ad'
+                    );
+                    suspiciousElements.forEach(el => {
+                        if (!el.closest('.movie-card') && !el.closest('.video-container')) {
+                            el.remove();
+                        }
+                    });
+                }
+            }, 1000);
         }
 
         // Setup search functionality
@@ -1412,13 +1596,20 @@
                             <iframe class="video-iframe" 
                                     src="${source.url}" 
                                     allowfullscreen
+                                    sandbox="allow-scripts allow-same-origin"
                                     allow="autoplay; fullscreen; picture-in-picture"
                                     referrerpolicy="no-referrer">
                             </iframe>
-                            ${source.clean ? '<div class="clean-badge">خالي من الإعلانات</div>' : '<div class="ad-block-notice">قد يحتوي على إعلانات - تجاهل النوافذ المنبثقة</div>'}
+                            ${source.clean ? '<div class="clean-badge">خالي من الإعلانات</div>' : '<div class="ad-block-notice">محمي من الإعلانات</div>'}
                         </div>
                     `;
                     showNotification(`تم تغيير المصدر إلى ${source.name}`, 'success');
+                    
+                    // تطبيق الحماية فوراً بعد تحميل المصدر
+                    setTimeout(() => {
+                        protectVideoPlayer();
+                        blockAllAdsInPage();
+                    }, 500);
                 };
                 sourcesGrid.appendChild(sourceBtn);
             });
@@ -1691,6 +1882,15 @@
             setTimeout(blockAds, 1000);
             setupiOSCompatibility();
             protectVideoPlayer(); // تفعيل الحماية الشاملة
+            blockAllAdsInPage(); // تفعيل حماية الصفحة الكاملة
+            
+            // حماية إضافية كل 3 ثوان
+            setInterval(() => {
+                if (adBlockEnabled) {
+                    protectVideoPlayer();
+                    blockAllAdsInPage();
+                }
+            }, 3000);
         });
 
         // Setup iOS and fullscreen compatibility
@@ -1730,15 +1930,31 @@
             // منع النقر المزدوج المؤدي للإعلانات
             let clickCount = 0;
             document.addEventListener('click', function(e) {
-                clickCount++;
-                if (clickCount > 2) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    showNotification('تم منع نقرات زائدة', 'warning');
-                    setTimeout(() => clickCount = 0, 1000);
-                    return false;
+                const target = e.target;
+                const isVideoPlayer = target.closest('.video-iframe') || target.closest('.video-container');
+                
+                if (isVideoPlayer) {
+                    clickCount++;
+                    
+                    // السماح بنقرة واحدة فقط كل ثانيتين
+                    if (clickCount > 1) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        showNotification('🛡️ تم منع نقرة إضافية', 'warning');
+                        return false;
+                    }
+                    
+                    // إعادة تعيين العداد بعد ثانيتين
+                    setTimeout(() => {
+                        clickCount = 0;
+                    }, 2000);
+                    
+                    // تطبيق حماية فورية بعد النقر
+                    setTimeout(() => {
+                        blockAllAdsInPage();
+                        protectVideoPlayer();
+                    }, 100);
                 }
-                setTimeout(() => clickCount = 0, 300);
             }, true);
         }
     </script>
