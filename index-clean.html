@@ -314,15 +314,13 @@
         }
 
         .tab-btn {
-            padding: 12px 20px;
+            padding: 10px 20px;
             background: rgba(229, 9, 20, 0.2);
             border: none;
             color: white;
-            border-radius: 8px;
+            border-radius: 5px;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 0.9rem;
-            font-weight: 500;
         }
 
         .tab-btn.active {
@@ -331,7 +329,7 @@
 
         .video-container {
             width: 100%;
-            height: 600px;
+            height: 500px;
             background: #000;
             border-radius: 10px;
             overflow: hidden;
@@ -507,38 +505,8 @@
             }
 
             .movies-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
                 gap: 1rem;
-                padding: 0 15px;
-            }
-            
-            .modal-content {
-                width: 95%;
-                margin: 10px auto;
-                max-height: 95vh;
-                overflow-y: auto;
-            }
-            
-            .video-container {
-                height: 250px;
-            }
-            
-            .video-tabs {
-                flex-wrap: wrap;
-                gap: 5px;
-            }
-            
-            .tab-btn {
-                padding: 8px 12px;
-                font-size: 0.8rem;
-                flex: 1;
-                min-width: 70px;
-            }
-            
-            .user-guide {
-                font-size: 0.75rem !important;
-                padding: 8px !important;
-                margin: 8px 0 !important;
             }
 
             .modal-content {
@@ -651,52 +619,6 @@
             font-size: 12px;
             text-align: center;
         }
-
-        /* Ad Block Protection */
-        .video-iframe {
-            pointer-events: auto;
-            border: none;
-            background: #000;
-        }
-
-        .iframe-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: transparent;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        .ad-block-notice {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(229, 9, 20, 0.9);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 20;
-        }
-
-        .clean-source {
-            border: 2px solid #28a745 !important;
-        }
-
-        .clean-badge {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            background: #28a745;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-            z-index: 15;
-        }
     </style>
 </head>
 <body>
@@ -758,9 +680,6 @@
                     <button class="tab-btn active" onclick="switchVideoTab('trailer')">تريلر</button>
                     <button class="tab-btn" onclick="switchVideoTab('movie')">مشاهدة الفيلم</button>
                     <button class="tab-btn" onclick="switchVideoTab('sources')">مصادر أخرى</button>
-                    <button class="tab-btn" onclick="toggleAdBlock()" id="adBlockBtn" style="background: #28a745;">
-                        <i class="fas fa-shield-alt"></i> الحماية
-                    </button>
                 </div>
                 
                 <div class="video-container" id="videoContainer">
@@ -770,11 +689,7 @@
                     </div>
                 </div>
 
-                    <div class="user-guide" style="background: #1a1a1a; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #28a745;">
-                        <div style="font-size: 0.85rem; line-height: 1.4; color: #ccc;">
-                            <strong style="color: #28a745;">نصائح للمشاهدة:</strong> نقرة واحدة فقط - إذا لم يعمل مصدر جرب الآخر - يمكن تعطيل الحماية عند الحاجة
-                        </div>
-                    </div>
+                <div class="movie-meta">
                     <img id="modalPoster" class="movie-poster-modal" src="" alt="">
                     <div class="movie-info-modal">
                         <div class="movie-rating-modal">
@@ -816,66 +731,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadMovies();
             setupSearch();
-            setupAdBlocker();
         });
-
-        // Toggle ad block protection
-        let adBlockEnabled = true;
-        function toggleAdBlock() {
-            adBlockEnabled = !adBlockEnabled;
-            const btn = document.getElementById('adBlockBtn');
-            
-            if (adBlockEnabled) {
-                btn.style.background = '#28a745';
-                btn.innerHTML = '<i class="fas fa-shield-alt"></i> الحماية';
-                showNotification('تم تفعيل الحماية', 'success');
-                setupAdBlocker();
-            } else {
-                btn.style.background = '#dc3545';
-                btn.innerHTML = '<i class="fas fa-shield-slash"></i> معطل';
-                showNotification('تم إيقاف الحماية', 'info');
-            }
-        }
-
-        // Enhanced ad blocker that can be toggled
-        let blockedAdsCount = 0;
-        
-        function setupAdBlocker() {
-            if (!adBlockEnabled) return;
-            
-            // Prevent pop-ups with better handling
-            const originalOpen = window.open;
-            window.open = function(url, name, specs) {
-                if (!adBlockEnabled) return originalOpen.apply(this, arguments);
-                
-                // Allow legitimate opens but block ads
-                if (url && (url.includes('ad') || url.includes('popup') || url.includes('click'))) {
-                    console.log('Popup blocked:', url);
-                    blockedAdsCount++;
-                    showNotification(`تم منع إعلان (${blockedAdsCount})`, 'success');
-                    return null;
-                }
-                return originalOpen.apply(this, arguments);
-            };
-
-            // Smart click protection
-            document.addEventListener('click', function(e) {
-                if (!adBlockEnabled) return;
-                
-                const target = e.target;
-                const link = target.closest('a');
-                
-                if (link && link.target === '_blank') {
-                    const href = link.href;
-                    if (href && (href.includes('ad') || href.includes('popup') || href.includes('click') || href.includes('track'))) {
-                        e.preventDefault();
-                        blockedAdsCount++;
-                        showNotification(`تم منع إعلان (${blockedAdsCount})`, 'success');
-                        return false;
-                    }
-                }
-            });
-        }
 
         // Setup search functionality
         function setupSearch() {
@@ -1200,101 +1056,40 @@
             const sourcesGrid = document.getElementById('sourcesGrid');
             const movie = window.currentMovie;
 
-            // Clean sources with minimal ads
-            const cleanSources = [
-                { 
-                    name: 'مصدر نظيف 1', 
-                    url: `https://vidsrc.cc/v2/embed/movie/${movie.id}`,
-                    clean: true
-                },
-                { 
-                    name: 'مصدر نظيف 2', 
-                    url: `https://www.2embed.cc/embed/${movie.id}`,
-                    clean: true
-                }
-            ];
-
-            // Regular sources (working but with ads)
-            const regularSources = [
-                { 
-                    name: 'مصدر 3', 
-                    url: `https://vidsrc.to/embed/movie/${movie.id}`,
-                    clean: false
-                },
-                { 
-                    name: 'مصدر 4', 
-                    url: `https://www.2embed.to/embed/tmdb/movie?id=${movie.id}`,
-                    clean: false
-                },
-                { 
-                    name: 'مصدر 5', 
-                    url: `https://multiembed.mov/directstream.php?video_id=${movie.id}&tmdb=1`,
-                    clean: false
-                }
-            ];
-
-            // Try clean source first
-            const firstSource = cleanSources[0];
+            // Try first direct source
+            const firstSource = `https://vidsrc.to/embed/movie/${movie.id}`;
             
             videoContainer.innerHTML = `
-                <div style="position: relative;">
-                    <iframe class="video-iframe" 
-                            src="${firstSource.url}" 
-                            allowfullscreen
-                            allow="autoplay; fullscreen; picture-in-picture"
-                            referrerpolicy="no-referrer">
-                    </iframe>
-                    ${firstSource.clean ? '<div class="clean-badge">خالي من الإعلانات</div>' : '<div class="ad-block-notice">قد يحتوي على إعلانات</div>'}
-                </div>
+                <iframe class="video-iframe" 
+                        src="${firstSource}" 
+                        allowfullscreen>
+                </iframe>
             `;
 
-            // Generate all sources
-            const allSources = [...cleanSources, ...regularSources];
-            
+            // Generate alternative sources
+            const sources = [
+                { name: 'مصدر 1', url: `https://vidsrc.to/embed/movie/${movie.id}` },
+                { name: 'مصدر 2', url: `https://2embed.to/embed/tmdb/movie?id=${movie.id}` },
+                { name: 'مصدر 3', url: `https://multiembed.mov/?video_id=${movie.id}&tmdb=1` },
+                { name: 'مصدر 4', url: `https://superembed.stream/embed/${movie.id}` }
+            ];
+
             sourcesGrid.innerHTML = '';
-            allSources.forEach((source, index) => {
+            sources.forEach(source => {
                 const sourceBtn = document.createElement('button');
-                sourceBtn.className = `source-btn ${source.clean ? 'clean-source' : ''}`;
-                sourceBtn.innerHTML = `
-                    ${source.name} 
-                    ${source.clean ? '<i class="fas fa-shield-alt" style="color: #28a745; margin-left: 5px;"></i>' : '<i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-left: 5px;"></i>'}
-                `;
+                sourceBtn.className = 'source-btn';
+                sourceBtn.textContent = source.name;
                 sourceBtn.onclick = () => {
                     videoContainer.innerHTML = `
-                        <div style="position: relative;">
-                            <iframe class="video-iframe" 
-                                    src="${source.url}" 
-                                    allowfullscreen
-                                    allow="autoplay; fullscreen; picture-in-picture"
-                                    referrerpolicy="no-referrer">
-                            </iframe>
-                            ${source.clean ? '<div class="clean-badge">خالي من الإعلانات</div>' : '<div class="ad-block-notice">قد يحتوي على إعلانات - تجاهل النوافذ المنبثقة</div>'}
-                        </div>
+                        <iframe class="video-iframe" 
+                                src="${source.url}" 
+                                allowfullscreen>
+                        </iframe>
                     `;
                     showNotification(`تم تغيير المصدر إلى ${source.name}`, 'success');
                 };
                 sourcesGrid.appendChild(sourceBtn);
             });
-
-            // Add ad block instructions
-            const instructionsDiv = document.createElement('div');
-            instructionsDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: rgba(229, 9, 20, 0.1); border-radius: 5px; color: #e50914; font-size: 12px;';
-            instructionsDiv.innerHTML = `
-                <i class="fas fa-info-circle"></i> 
-                <strong>نصائح مهمة للمشاهدة:</strong><br>
-                • استخدم المصادر النظيفة (🛡️) للحصول على تجربة خالية من الإعلانات<br>
-                • في حالة ظهور نوافذ منبثقة، أغلقها فوراً ولا تنقر عليها<br>
-                • إذا لم يعمل مصدر، جرب المصدر التالي<br>
-                • تم تفعيل حماية تلقائية من النوافذ المنبثقة<br>
-                • <strong>لا تدخل معلومات شخصية في أي نافذة منبثقة</strong>
-            `;
-            
-            const alternativeSources = document.getElementById('alternativeSources');
-            if (alternativeSources.querySelector('.ad-block-instructions')) {
-                alternativeSources.querySelector('.ad-block-instructions').remove();
-            }
-            instructionsDiv.className = 'ad-block-instructions';
-            alternativeSources.appendChild(instructionsDiv);
         }
 
         // Show alternative sources
@@ -1477,71 +1272,6 @@
             if (event.key === 'Escape') {
                 closeModal();
             }
-        });
-
-        // Advanced Ad Blocker
-        function blockAds() {
-            // Block common ad domains
-            const adDomains = [
-                'doubleclick.net',
-                'googleadservices.com',
-                'googlesyndication.com',
-                'amazon-adsystem.com',
-                'facebook.com/tr',
-                'google-analytics.com',
-                'googletagmanager.com'
-            ];
-
-            // Override fetch to block ad requests
-            const originalFetch = window.fetch;
-            window.fetch = function(...args) {
-                const url = args[0];
-                if (typeof url === 'string') {
-                    for (const domain of adDomains) {
-                        if (url.includes(domain)) {
-                            console.log('Blocked ad request:', url);
-                            return Promise.reject('Ad blocked');
-                        }
-                    }
-                }
-                return originalFetch.apply(this, args);
-            };
-
-            // Block ad elements
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1) { // Element node
-                            // Block common ad selectors
-                            const adSelectors = [
-                                '[id*="ad"]',
-                                '[class*="ad"]',
-                                '[id*="banner"]',
-                                '[class*="banner"]',
-                                'iframe[src*="ads"]',
-                                'div[style*="position: fixed"]'
-                            ];
-                            
-                            adSelectors.forEach(selector => {
-                                const adElements = node.querySelectorAll ? node.querySelectorAll(selector) : [];
-                                adElements.forEach(el => {
-                                    if (el && !el.closest('.movie-card') && !el.closest('.modal')) {
-                                        el.style.display = 'none';
-                                        console.log('Blocked ad element:', el);
-                                    }
-                                });
-                            });
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-
-        // Initialize ad blocker when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(blockAds, 1000);
         });
     </script>
 </body>
