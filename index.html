@@ -140,9 +140,13 @@
 
         .movies-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
             margin-top: 2rem;
+            padding: 0 1rem;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .movie-card {
@@ -517,10 +521,42 @@
                 font-size: 2rem;
             }
 
-            .movies-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .nav {
+                flex-direction: column;
                 gap: 1rem;
-                padding: 0 15px;
+                padding: 1rem;
+            }
+
+            .search-container {
+                margin: 0;
+                max-width: 100%;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .movies-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 0 10px;
+            }
+            
+            .movie-card {
+                height: 280px;
+                margin-bottom: 10px;
+            }
+            
+            .movie-poster {
+                height: 200px;
+            }
+            
+            .movie-title {
+                font-size: 0.85rem;
+                line-height: 1.2;
+                padding: 8px;
             }
             
             .modal-content {
@@ -531,30 +567,59 @@
             }
             
             .video-container {
-                height: 300px;
+                height: 200px;
+                margin: 10px 0;
             }
             
             .video-tabs {
                 flex-wrap: wrap;
-                gap: 5px;
+                gap: 3px;
+                margin-bottom: 10px;
             }
             
             .tab-btn {
-                padding: 10px 15px;
-                font-size: 0.85rem;
+                padding: 8px 10px;
+                font-size: 0.75rem;
                 flex: 1;
-                min-width: 80px;
+                min-width: 60px;
+                margin: 2px;
             }
             
             .user-guide {
-                font-size: 0.8rem !important;
-                padding: 10px !important;
-                margin: 10px 0 !important;
+                font-size: 0.7rem !important;
+                padding: 6px !important;
+                margin: 6px 0 !important;
             }
 
             .movie-details {
-                padding: 0 20px 20px;
+                padding: 0 15px 15px;
             }
+            
+            .movie-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .movie-poster-modal {
+                width: 120px !important;
+                height: 180px !important;
+            }
+            
+            .movie-info h3 {
+                font-size: 1.1rem;
+            }
+            
+            .movie-info p {
+                font-size: 0.8rem;
+                line-height: 1.3;
+            }
+            
+            .close {
+                top: 10px;
+                right: 15px;
+                font-size: 1.5rem;
+            }
+        }
 
             .movie-meta {
                 flex-direction: column;
@@ -837,98 +902,120 @@
             if (adBlockEnabled) {
                 btn.style.background = '#28a745';
                 btn.innerHTML = '<i class="fas fa-shield-alt"></i> الحماية';
-                showNotification('تم تفعيل الحماية', 'success');
-                setupAdBlocker();
+                showNotification('تم تفعيل الحماية الشاملة', 'success');
+                protectVideoPlayer();
             } else {
                 btn.style.background = '#dc3545';
                 btn.innerHTML = '<i class="fas fa-shield-slash"></i> معطل';
                 showNotification('تم إيقاف الحماية', 'info');
+                // إعادة تحميل المشغل لإزالة الحماية
+                const activeTab = document.querySelector('.tab-btn.active');
+                if (activeTab && activeTab.textContent.includes('مشاهدة')) {
+                    switchVideoTab('movie');
+                }
             }
         }
 
-        // Enhanced ad blocker that can be toggled
-        let blockedAdsCount = 0;
-        
-        function setupAdBlocker() {
+        // حماية شاملة للمشغل ضد جميع أنواع الإعلانات
+        function protectVideoPlayer() {
             if (!adBlockEnabled) return;
-            
-            // منع النوافذ المنبثقة بطريقة محسنة
+
+            // منع جميع النوافذ المنبثقة من المشغل
             const originalOpen = window.open;
             window.open = function(url, name, specs) {
-                if (!adBlockEnabled) return originalOpen.apply(this, arguments);
-                
-                // قائمة بكلمات الإعلانات المشبوهة
-                const adKeywords = ['ad', 'popup', 'click', 'track', 'banner', 'promo', 'campaign', 'affiliate'];
-                const isAd = url && adKeywords.some(keyword => url.toLowerCase().includes(keyword));
-                
-                if (isAd) {
-                    console.log('Popup blocked:', url);
-                    blockedAdsCount++;
-                    showNotification(`تم منع إعلان (${blockedAdsCount})`, 'success');
-                    return null;
-                }
-                return originalOpen.apply(this, arguments);
+                console.log('Blocked popup attempt:', url);
+                showNotification('تم منع نافذة منبثقة', 'success');
+                return { 
+                    closed: false, 
+                    close: function(){}, 
+                    focus: function(){} 
+                };
             };
 
-            // حماية ضد النقرات المشبوهة
+            // منع جميع أحداث النقر المشبوهة
             document.addEventListener('click', function(e) {
-                if (!adBlockEnabled) return;
-                
                 const target = e.target;
-                const link = target.closest('a');
+                const iframe = target.closest('iframe');
                 
-                if (link && link.target === '_blank') {
-                    const href = link.href;
-                    const adKeywords = ['ad', 'popup', 'click', 'track', 'banner', 'promo', 'campaign', 'affiliate'];
-                    const isAd = href && adKeywords.some(keyword => href.toLowerCase().includes(keyword));
-                    
-                    if (isAd) {
+                if (iframe && iframe.classList.contains('video-iframe')) {
+                    // السماح بالنقر على controls الأساسية فقط
+                    const allowedClicks = ['BUTTON', 'VIDEO', 'AUDIO'];
+                    if (!allowedClicks.includes(target.tagName)) {
                         e.preventDefault();
                         e.stopPropagation();
-                        blockedAdsCount++;
-                        showNotification(`تم منع إعلان (${blockedAdsCount})`, 'success');
+                        showNotification('تم منع نقرة مشبوهة في المشغل', 'warning');
                         return false;
                     }
                 }
-            }, true); // استخدام capture phase
+            }, true);
 
             // منع الإعلانات في iframe
-            document.addEventListener('DOMContentLoaded', function() {
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        mutation.addedNodes.forEach(function(node) {
-                            if (node.nodeType === 1) { // Element node
-                                // فحص الإعلانات الجديدة
-                                const ads = node.querySelectorAll('*[class*="ad"], *[id*="ad"], *[class*="popup"], *[id*="popup"]');
-                                ads.forEach(ad => {
-                                    if (adBlockEnabled) {
-                                        ad.style.display = 'none';
-                                        blockedAdsCount++;
-                                    }
-                                });
+            document.querySelectorAll('.video-iframe').forEach(iframe => {
+                iframe.onload = function() {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        
+                        // حقن CSS لإخفاء الإعلانات
+                        const style = iframeDoc.createElement('style');
+                        style.textContent = `
+                            [class*="ad"], [id*="ad"], [class*="popup"], [id*="popup"],
+                            [class*="banner"], [id*="banner"], [class*="promo"], [id*="promo"],
+                            .advertisement, .popup, .overlay, .modal-ad, .interstitial {
+                                display: none !important;
+                                visibility: hidden !important;
+                                opacity: 0 !important;
+                                pointer-events: none !important;
                             }
-                        });
+                        `;
+                        iframeDoc.head.appendChild(style);
+
+                        // منع النقرات المشبوهة داخل iframe
+                        iframeDoc.addEventListener('click', function(e) {
+                            const target = e.target;
+                            if (target.tagName === 'A' || target.closest('a')) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+                        }, true);
+
+                    } catch (err) {
+                        console.log('Cross-origin iframe - using external protection');
+                    }
+                };
+            });
+
+            // مراقبة مستمرة للإعلانات الجديدة
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) {
+                            // إزالة أي إعلانات جديدة
+                            const adSelectors = [
+                                '[class*="ad"]', '[id*="ad"]', '[class*="popup"]', 
+                                '[id*="popup"]', '[class*="banner"]', '.advertisement',
+                                '.overlay', '.modal-ad', '.interstitial'
+                            ];
+                            
+                            adSelectors.forEach(selector => {
+                                const ads = node.querySelectorAll ? node.querySelectorAll(selector) : [];
+                                ads.forEach(ad => {
+                                    ad.style.display = 'none';
+                                    ad.style.visibility = 'hidden';
+                                    ad.remove();
+                                });
+                            });
+                        }
                     });
-                });
-                
-                observer.observe(document.body, {
-                    childList: true,
-                    subtree: true
                 });
             });
 
-            // منع إعادة التوجيه المشبوه
-            let lastClickTime = 0;
-            document.addEventListener('click', function(e) {
-                const now = Date.now();
-                if (now - lastClickTime < 500) { // منع النقرات السريعة المتتالية
-                    e.preventDefault();
-                    e.stopPropagation();
-                    showNotification('تم منع نقرة مشبوهة', 'warning');
-                    return false;
-                }
-                lastClickTime = now;
-            }, true);
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class', 'id', 'style']
+            });
         }
 
         // Setup search functionality
@@ -1186,7 +1273,9 @@
         function switchVideoTab(tab) {
             // Update active tab
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
+                if (!btn.id || btn.id !== 'adBlockBtn') {
+                    btn.classList.remove('active');
+                }
             });
             event.target.classList.add('active');
 
@@ -1199,6 +1288,10 @@
             } else if (tab === 'movie') {
                 loadDirectStreamingSources();
                 alternativeSources.style.display = 'block';
+                // تطبيق الحماية الشاملة فور تحميل المشغل
+                setTimeout(() => {
+                    protectVideoPlayer();
+                }, 500);
             } else if (tab === 'sources') {
                 showAlternativeSources();
                 alternativeSources.style.display = 'none';
@@ -1597,6 +1690,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(blockAds, 1000);
             setupiOSCompatibility();
+            protectVideoPlayer(); // تفعيل الحماية الشاملة
         });
 
         // Setup iOS and fullscreen compatibility
