@@ -2,7 +2,10 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>قرية الأفلام - مشاهدة مجانية</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -343,6 +346,14 @@
             width: 100%;
             height: 100%;
             border: none;
+            /* توافق أفضل مع iPhone ومنع الإعلانات */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            /* حماية إضافية */
+            pointer-events: auto;
+            touch-action: manipulation;
         }
 
         .movie-details {
@@ -841,13 +852,16 @@
         function setupAdBlocker() {
             if (!adBlockEnabled) return;
             
-            // Prevent pop-ups with better handling
+            // منع النوافذ المنبثقة بطريقة محسنة
             const originalOpen = window.open;
             window.open = function(url, name, specs) {
                 if (!adBlockEnabled) return originalOpen.apply(this, arguments);
                 
-                // Allow legitimate opens but block ads
-                if (url && (url.includes('ad') || url.includes('popup') || url.includes('click'))) {
+                // قائمة بكلمات الإعلانات المشبوهة
+                const adKeywords = ['ad', 'popup', 'click', 'track', 'banner', 'promo', 'campaign', 'affiliate'];
+                const isAd = url && adKeywords.some(keyword => url.toLowerCase().includes(keyword));
+                
+                if (isAd) {
                     console.log('Popup blocked:', url);
                     blockedAdsCount++;
                     showNotification(`تم منع إعلان (${blockedAdsCount})`, 'success');
@@ -856,7 +870,7 @@
                 return originalOpen.apply(this, arguments);
             };
 
-            // Smart click protection
+            // حماية ضد النقرات المشبوهة
             document.addEventListener('click', function(e) {
                 if (!adBlockEnabled) return;
                 
@@ -865,14 +879,56 @@
                 
                 if (link && link.target === '_blank') {
                     const href = link.href;
-                    if (href && (href.includes('ad') || href.includes('popup') || href.includes('click') || href.includes('track'))) {
+                    const adKeywords = ['ad', 'popup', 'click', 'track', 'banner', 'promo', 'campaign', 'affiliate'];
+                    const isAd = href && adKeywords.some(keyword => href.toLowerCase().includes(keyword));
+                    
+                    if (isAd) {
                         e.preventDefault();
+                        e.stopPropagation();
                         blockedAdsCount++;
                         showNotification(`تم منع إعلان (${blockedAdsCount})`, 'success');
                         return false;
                     }
                 }
+            }, true); // استخدام capture phase
+
+            // منع الإعلانات في iframe
+            document.addEventListener('DOMContentLoaded', function() {
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1) { // Element node
+                                // فحص الإعلانات الجديدة
+                                const ads = node.querySelectorAll('*[class*="ad"], *[id*="ad"], *[class*="popup"], *[id*="popup"]');
+                                ads.forEach(ad => {
+                                    if (adBlockEnabled) {
+                                        ad.style.display = 'none';
+                                        blockedAdsCount++;
+                                    }
+                                });
+                            }
+                        });
+                    });
+                });
+                
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
             });
+
+            // منع إعادة التوجيه المشبوه
+            let lastClickTime = 0;
+            document.addEventListener('click', function(e) {
+                const now = Date.now();
+                if (now - lastClickTime < 500) { // منع النقرات السريعة المتتالية
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showNotification('تم منع نقرة مشبوهة', 'warning');
+                    return false;
+                }
+                lastClickTime = now;
+            }, true);
         }
 
         // Setup search functionality
@@ -1540,7 +1596,57 @@
         // Initialize ad blocker when page loads
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(blockAds, 1000);
+            setupiOSCompatibility();
         });
+
+        // Setup iOS and fullscreen compatibility
+        function setupiOSCompatibility() {
+            // منع التكبير المزدوج في iPhone
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            // حماية ضد الإعلانات عند fullscreen
+            document.addEventListener('fullscreenchange', function() {
+                if (adBlockEnabled) {
+                    setTimeout(() => {
+                        blockAds();
+                        const ads = document.querySelectorAll('*[class*="ad"], *[id*="ad"], *[class*="popup"]');
+                        ads.forEach(ad => ad.style.display = 'none');
+                    }, 100);
+                }
+            });
+
+            // حماية ضد الإعلانات عند تغيير orientation في iPhone
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    if (adBlockEnabled) {
+                        blockAds();
+                        const ads = document.querySelectorAll('*[class*="ad"], *[id*="ad"], *[class*="popup"]');
+                        ads.forEach(ad => ad.style.display = 'none');
+                    }
+                }, 500);
+            });
+
+            // منع النقر المزدوج المؤدي للإعلانات
+            let clickCount = 0;
+            document.addEventListener('click', function(e) {
+                clickCount++;
+                if (clickCount > 2) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showNotification('تم منع نقرات زائدة', 'warning');
+                    setTimeout(() => clickCount = 0, 1000);
+                    return false;
+                }
+                setTimeout(() => clickCount = 0, 300);
+            }, true);
+        }
     </script>
 </body>
 </html>
