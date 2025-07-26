@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Cinema Hub - مركز السينما العالمي</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* CSS Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Root Variables */
+        :root {
+            --netflix-red: #e50914;
+            --netflix-dark-red: #b81d24;
+            --dark-bg: #0f0f0f;
+            --darker-bg: #000000;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-muted: #8c8c8c;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-logo {
+            font-size: clamp(3rem, 8vw, 6rem);
+            margin-bottom: 2rem;
+            animation: pulse 2s infinite;
+        }
+
+        .loading-text {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: var(--netflix-red);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .loading-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(229, 9, 20, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--netflix-red), var(--netflix-dark-red));
+            width: 0%;
+            animation: loading 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
+            padding: 1rem 0;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar.scrolled {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 0.5rem 0;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: bold;
+            color: var(--netflix-red);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--netflix-red);
+            transform: translateY(-2px);
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><radialGradient id="g"><stop offset="0%" stop-color="rgba(229,9,20,0.1)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><circle cx="500" cy="500" r="400" fill="url(%23g)"/></svg>') center/cover;
+            opacity: 0.3;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 2;
+            max-width: 800px;
+            padding: 0 2rem;
+        }
+
+        .hero-title {
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--netflix-red), #ff6b6b, var(--netflix-red));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--netflix-red), var(--netflix-dark-red));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--netflix-dark-red), var(--netflix-red));
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--netflix-red);
+        }
+
+        @keyframes glow {
+            0% { filter: brightness(1) drop-shadow(0 0 20px rgba(229, 9, 20, 0.3)); }
+            100% { filter: brightness(1.2) drop-shadow(0 0 30px rgba(229, 9, 20, 0.6)); }
+        }
+
+        /* Content Sections */
+        .section {
+            padding: 4rem 0;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .section-subtitle {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Content Tabs */
+        .content-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.8rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--border-color);
+            border-radius: 30px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: var(--netflix-red);
+            border-color: var(--netflix-red);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Movie Grid */
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .movie-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: var(--transition);
+            border: 1px solid var(--border-color);
+            position: relative;
+            cursor: pointer;
+            backdrop-filter: blur(20px);
+        }
+
+        .movie-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(229, 9, 20, 0.2);
+            border-color: var(--netflix-red);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .movie-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(transparent 60%, rgba(0, 0, 0, 0.8));
+            opacity: 0;
+            transition: var(--transition);
+            display: flex;
+            align-items: flex-end;
+            padding: 2rem;
+        }
+
+        .movie-card:hover .movie-overlay {
+            opacity: 1;
+        }
+
+        .movie-info {
+            padding: 1.5rem;
+        }
+
+        .movie-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .movie-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .movie-year {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .movie-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            color: #ffd700;
+            font-weight: 500;
+        }
+
+        .movie-overview {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .movie-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .watch-btn {
+            background: var(--netflix-red);
+            color: white;
+        }
+
+        .watch-btn:hover {
+            background: var(--netflix-dark-red);
+            transform: translateY(-2px);
+        }
+
+        .info-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .info-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Responsive Grid Adjustments */
+        @media (max-width: 1200px) {
+            .movies-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .movies-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+            
+            .movie-poster {
+                height: 300px;
+            }
+            
+            .movie-info {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .movies-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.8rem;
+            }
+            
+            .movie-poster {
+                height: 250px;
+            }
+            
+            .movie-title {
+                font-size: 1rem;
+            }
+            
+            .movie-info {
+                padding: 0.8rem;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(229, 9, 20, 0.2);
+            border-top: 4px solid var(--netflix-red);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--dark-bg);
+            border-radius: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 2001;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--netflix-red);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Mobile Navigation */
+        @media (max-width: 768px) {
+            .nav-menu {
+                position: fixed;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(0, 0, 0, 0.95);
+                flex-direction: column;
+                padding: 2rem;
+                gap: 1rem;
+                transform: translateY(-100%);
+                transition: var(--transition);
+                backdrop-filter: blur(20px);
+            }
+
+            .nav-menu.open {
+                transform: translateY(0);
+            }
+
+            .mobile-toggle {
+                display: block;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .content-tabs {
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+
+            .content-tabs::-webkit-scrollbar {
+                display: none;
+            }
+
+            .tab-btn {
+                flex-shrink: 0;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .hidden { display: none; }
+        .visible { display: block; }
+
+        /* Content type indicators */
+        .content-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--netflix-red);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        /* Advanced hover effects */
+        .movie-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(229, 9, 20, 0.1), transparent);
+            opacity: 0;
+            transition: var(--transition);
+            z-index: 1;
+        }
+
+        .movie-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Floating action button */
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background: var(--netflix-red);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            z-index: 1000;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            background: var(--netflix-dark-red);
+        }
+
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--netflix-red);
+            z-index: 9999;
+            transition: width 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">🎬</div>
+        <div class="loading-text">Cinema Hub</div>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator" id="scrollIndicator"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <i class="fas fa-film"></i>
+                Cinema Hub
+            </a>
+            <ul class="nav-menu" id="navMenu">
+                <li class="nav-item">
+                    <a href="#home" class="nav-link active">
+                        <i class="fas fa-home"></i>
+                        الرئيسية
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#movies" class="nav-link">
+                        <i class="fas fa-film"></i>
+                        أفلام
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#tv" class="nav-link">
+                        <i class="fas fa-tv"></i>
+                        مسلسلات
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#favorites" class="nav-link">
+                        <i class="fas fa-heart"></i>
+                        المفضلة
+                    </a>
+                </li>
+            </ul>
+            <button class="mobile-toggle" id="mobileToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">مرحباً بك في Cinema Hub</h1>
+            <p class="hero-subtitle">
+                اكتشف عالماً لا محدوداً من الأفلام والمسلسلات العالمية بجودة عالية ومجاناً تماماً
+            </p>
+            <div class="hero-actions">
+                <a href="#movies" class="btn btn-primary">
+                    <i class="fas fa-play"></i>
+                    ابدأ المشاهدة
+                </a>
+                <a href="#about" class="btn btn-secondary">
+                    <i class="fas fa-info-circle"></i>
+                    المزيد عن الموقع
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Movies Section -->
+    <section class="section" id="movies">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">استكشف المحتوى</h2>
+                <p class="section-subtitle">
+                    آلاف الأفلام والمسلسلات في انتظارك من جميع أنحاء العالم
+                </p>
+            </div>
+
+            <div class="content-tabs">
+                <button class="tab-btn active" data-type="popular">
+                    <i class="fas fa-fire"></i>
+                    الأكثر شعبية
+                </button>
+                <button class="tab-btn" data-type="top_rated">
+                    <i class="fas fa-star"></i>
+                    الأعلى تقييماً
+                </button>
+                <button class="tab-btn" data-type="latest">
+                    <i class="fas fa-clock"></i>
+                    الأحدث
+                </button>
+                <button class="tab-btn" data-type="action">
+                    <i class="fas fa-fist-raised"></i>
+                    أكشن
+                </button>
+                <button class="tab-btn" data-type="comedy">
+                    <i class="fas fa-laugh"></i>
+                    كوميدي
+                </button>
+                <button class="tab-btn" data-type="drama">
+                    <i class="fas fa-theater-masks"></i>
+                    دراما
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>جاري تحميل المحتوى...</p>
+            </div>
+
+            <div class="movies-grid" id="moviesGrid">
+                <!-- Movies will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal -->
+    <div class="modal" id="movieModal">
+        <div class="modal-content" id="modalContent">
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <!-- Modal content will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="scrollToTop()" title="العودة للأعلى">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script>
+        // Configuration
+        const API_KEY = 'b009eaecd7a27750722cc9e29ac50caf';
+        const BASE_URL = 'https://api.themoviedb.org/3';
+        const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
+        // State
+        let currentContentType = 'movie';
+        let currentCategory = 'popular';
+        let currentPage = 1;
+        let isLoading = false;
+
+        // DOM Elements
+        const loadingScreen = document.getElementById('loadingScreen');
+        const navbar = document.getElementById('navbar');
+        const navMenu = document.getElementById('navMenu');
+        const mobileToggle = document.getElementById('mobileToggle');
+        const moviesGrid = document.getElementById('moviesGrid');
+        const loading = document.getElementById('loading');
+        const modal = document.getElementById('movieModal');
+        const scrollIndicator = document.getElementById('scrollIndicator');
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading
+            setTimeout(() => {
+                loadingScreen.classList.add('hidden');
+                loadMovies('popular');
+            }, 2000);
+
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Mobile menu toggle
+            mobileToggle.addEventListener('click', () => {
+                navMenu.classList.toggle('open');
+            });
+
+            // Scroll events
+            window.addEventListener('scroll', handleScroll);
+
+            // Tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const type = e.target.closest('.tab-btn').dataset.type;
+                    setActiveTab(e.target.closest('.tab-btn'));
+                    loadMovies(type);
+                });
+            });
+
+            // Navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const target = e.target.closest('.nav-link').getAttribute('href');
+                    if (target.startsWith('#')) {
+                        scrollToSection(target);
+                    }
+                });
+            });
+
+            // Modal close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+
+        function handleScroll() {
+            const scrollTop = window.pageYOffset;
+            const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / documentHeight) * 100;
+            
+            // Update scroll indicator
+            scrollIndicator.style.width = scrollPercent + '%';
+            
+            // Update navbar
+            if (scrollTop > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }
+
+        function setActiveTab(activeBtn) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            activeBtn.classList.add('active');
+        }
+
+        async function loadMovies(category) {
+            if (isLoading) return;
+            
+            isLoading = true;
+            currentCategory = category;
+            
+            loading.classList.add('show');
+            moviesGrid.innerHTML = '';
+
+            try {
+                let url = '';
+                
+                switch (category) {
+                    case 'popular':
+                        url = `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=ar&page=${currentPage}`;
+                        break;
+                    case 'top_rated':
+                        url = `${BASE_URL}/movie/top_rated?api_key=${API_KEY}&language=ar&page=${currentPage}`;
+                        break;
+                    case 'latest':
+                        url = `${BASE_URL}/movie/now_playing?api_key=${API_KEY}&language=ar&page=${currentPage}`;
+                        break;
+                    case 'action':
+                        url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=ar&with_genres=28&page=${currentPage}`;
+                        break;
+                    case 'comedy':
+                        url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=ar&with_genres=35&page=${currentPage}`;
+                        break;
+                    case 'drama':
+                        url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=ar&with_genres=18&page=${currentPage}`;
+                        break;
+                    default:
+                        url = `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=ar&page=${currentPage}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    displayMovies(data.results);
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading movies:', error);
+                showErrorState();
+            } finally {
+                loading.classList.remove('show');
+                isLoading = false;
+            }
+        }
+
+        function displayMovies(movies) {
+            moviesGrid.innerHTML = '';
+            
+            movies.forEach(movie => {
+                const movieCard = createMovieCard(movie);
+                moviesGrid.appendChild(movieCard);
+            });
+
+            // Add stagger animation
+            const cards = moviesGrid.querySelectorAll('.movie-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 50);
+            });
+        }
+
+        function createMovieCard(movie) {
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            
+            const posterUrl = movie.poster_path 
+                ? `${IMAGE_BASE_URL}${movie.poster_path}` 
+                : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ1MCIgdmlld0JveD0iMCAwIDMwMCA0NTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iNDUwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjE1MCIgeT0iMjI1IiBmaWxsPSIjNjY2IiBmb250LXNpemU9IjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+لا توجد صورة</L3RleHQ+Cjwvc3ZnPgo=';
+
+            const title = movie.title || movie.name;
+            const year = movie.release_date ? new Date(movie.release_date).getFullYear() : '';
+            const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A';
+            const overview = movie.overview || 'لا يوجد وصف متاح';
+
+            card.innerHTML = `
+                <div class="content-badge">${movie.title ? 'فيلم' : 'مسلسل'}</div>
+                <img class="movie-poster" src="${posterUrl}" alt="${title}" loading="lazy">
+                <div class="movie-overlay">
+                    <button class="btn btn-primary" onclick="openMovieModal(${movie.id})">
+                        <i class="fas fa-play"></i> مشاهدة
+                    </button>
+                </div>
+                <div class="movie-info">
+                    <h3 class="movie-title">${title}</h3>
+                    <div class="movie-meta">
+                        <span class="movie-year">${year}</span>
+                        <div class="movie-rating">
+                            <i class="fas fa-star"></i>
+                            <span>${rating}</span>
+                        </div>
+                    </div>
+                    <p class="movie-overview">${overview}</p>
+                    <div class="movie-actions">
+                        <button class="action-btn watch-btn" onclick="openMovieModal(${movie.id})">
+                            <i class="fas fa-play"></i>
+                            مشاهدة
+                        </button>
+                        <button class="action-btn info-btn" onclick="toggleFavorite(${movie.id})">
+                            <i class="fas fa-heart"></i>
+                            مفضلة
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        async function openMovieModal(movieId) {
+            try {
+                const response = await fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=ar&append_to_response=videos,credits`);
+                const movie = await response.json();
+                
+                displayMovieModal(movie);
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            } catch (error) {
+                console.error('Error loading movie details:', error);
+            }
+        }
+
+        function displayMovieModal(movie) {
+            const modalContent = document.getElementById('modalContent');
+            
+            const posterUrl = movie.poster_path ? `${IMAGE_BASE_URL}${movie.poster_path}` : '';
+            const backdropUrl = movie.backdrop_path ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}` : '';
+            
+            // Find trailer
+            const trailer = movie.videos?.results?.find(video => 
+                video.type === 'Trailer' && video.site === 'YouTube'
+            );
+
+            modalContent.innerHTML = `
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <div style="position: relative; min-height: 300px; background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('${backdropUrl}') center/cover;">
+                    <div style="padding: 3rem 2rem; color: white;">
+                        <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">${movie.title}</h2>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                            <span>⭐ ${movie.vote_average?.toFixed(1)}</span>
+                            <span>📅 ${new Date(movie.release_date).getFullYear()}</span>
+                            <span>⏱️ ${movie.runtime} دقيقة</span>
+                        </div>
+                        <p style="font-size: 1.1rem; line-height: 1.6; max-width: 800px;">${movie.overview}</p>
+                    </div>
+                </div>
+
+                <div style="padding: 2rem;">
+                    ${trailer ? `
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem;">التريلر</h3>
+                            <iframe width="100%" height="400" src="https://www.youtube.com/embed/${trailer.key}" frameborder="0" allowfullscreen style="border-radius: 10px;"></iframe>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem;">مصادر المشاهدة</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                            <a href="https://vidsrc.to/embed/movie/${movie.id}" target="_blank" style="padding: 1rem; background: var(--netflix-red); color: white; text-decoration: none; border-radius: 10px; text-align: center; transition: var(--transition);">
+                                <i class="fas fa-play"></i> مشاهدة على VidSrc
+                            </a>
+                            <a href="https://www.2embed.to/embed/tmdb/movie?id=${movie.id}" target="_blank" style="padding: 1rem; background: rgba(255,255,255,0.1); color: white; text-decoration: none; border-radius: 10px; text-align: center; border: 1px solid var(--border-color); transition: var(--transition);">
+                                <i class="fas fa-film"></i> مشاهدة على 2Embed
+                            </a>
+                        </div>
+                    </div>
+
+                    ${movie.genres?.length ? `
+                        <div>
+                            <h3 style="margin-bottom: 1rem;">التصنيفات</h3>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                ${movie.genres.map(genre => `
+                                    <span style="padding: 0.5rem 1rem; background: rgba(229,9,20,0.2); border: 1px solid var(--netflix-red); border-radius: 20px; font-size: 0.9rem;">${genre.name}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function closeModal() {
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function toggleFavorite(movieId) {
+            // Implement favorite functionality
+            console.log('Toggle favorite for movie:', movieId);
+            // You can add localStorage functionality here
+        }
+
+        function scrollToSection(target) {
+            const element = document.querySelector(target);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showEmptyState() {
+            moviesGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                    <i class="fas fa-film" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">لا توجد أفلام</h3>
+                    <p style="color: var(--text-secondary);">لم يتم العثور على أي أفلام في هذا القسم</p>
+                </div>
+            `;
+        }
+
+        function showErrorState() {
+            moviesGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--netflix-red); margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">حدث خطأ</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">فشل في تحميل الأفلام، يرجى المحاولة مرة أخرى</p>
+                    <button class="btn btn-primary" onclick="loadMovies(currentCategory)">
+                        <i class="fas fa-redo"></i> إعادة المحاولة
+                    </button>
+                </div>
+            `;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                closeModal();
+            }
+        });
+
+        // Performance optimization: Lazy loading for images
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy');
+                    observer.unobserve(img);
+                }
+            });
+        });
+
+        // Add smooth scroll behavior for all anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
