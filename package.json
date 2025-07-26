@@ -1,0 +1,38 @@
+{
+  "name": "movie-village",
+  "version": "1.0.0",
+  "description": "موقع أفلام احترافي مجاني مع واجهة مشابهة لـ Netflix",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "npx live-server",
+    "preview": "python3 -m http.server 3000"
+  },
+  "keywords": [
+    "movies",
+    "cinema",
+    "streaming",
+    "arabic",
+    "netflix-clone",
+    "free-movies",
+    "tmdb",
+    "javascript",
+    "html",
+    "css"
+  ],
+  "author": "Abdualzizsm",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Abdualzizsm/move.git"
+  },
+  "homepage": "https://abdualzizsm.github.io/move",
+  "bugs": {
+    "url": "https://github.com/Abdualzizsm/move/issues"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
