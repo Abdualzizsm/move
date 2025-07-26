@@ -944,6 +944,7 @@
         // Load movies when page loads with ultimate protection
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🛡️ بدء تطبيق الحماية المطلقة للموقع...');
+            console.log('🎬 بدء تحميل التطبيق...');
             
             // حماية فورية من النوافذ المنبثقة والتحويلات
             const originalOpen = window.open;
@@ -992,10 +993,18 @@
                 configurable: false
             });
 
-            loadMovies();
+            // تحميل المكونات بالترتيب الصحيح
+            console.log('🔧 إعداد البحث...');
             setupSearch();
+            
+            console.log('🎭 تحميل أنواع الأفلام...');
             loadGenres();
+            
+            console.log('🛡️ إعداد الحماية...');
             setupAdBlocker();
+            
+            console.log('🎬 تحميل الأفلام...');
+            loadMovies();
             
             // تطبيق حماية دورية مكثفة جداً
             setInterval(() => {
@@ -1022,7 +1031,7 @@
                 });
             }, 1000);
             
-            console.log('🛡️ تم تفعيل الحماية المطلقة للموقع بنجاح');
+            console.log('✅ تم تفعيل التطبيق والحماية المطلقة للموقع بنجاح');
         });
 
         // Setup ad blocker functionality
@@ -1558,8 +1567,15 @@
 
         // Load movies from API
         async function loadMovies(page = 1) {
+            console.log('🎬 بدء تحميل الأفلام...', { page, currentGenre, currentSearchQuery, showingFavorites });
+            
             const loadingEl = document.getElementById('loading');
             const moviesGrid = document.getElementById('moviesGrid');
+            
+            if (!loadingEl || !moviesGrid) {
+                console.error('❌ عناصر HTML غير موجودة:', { loadingEl, moviesGrid });
+                return;
+            }
             
             loadingEl.style.display = 'block';
             moviesGrid.innerHTML = '';
@@ -1567,39 +1583,53 @@
             try {
                 let url;
                 if (showingFavorites) {
+                    console.log('📋 عرض المفضلة...');
                     displayFavorites();
                     return;
                 }
 
                 if (currentSearchQuery) {
                     url = `${BASE_URL}/search/movie?api_key=${API_KEY}&language=ar&query=${encodeURIComponent(currentSearchQuery)}&page=${page}`;
+                    console.log('🔍 البحث عن:', currentSearchQuery);
                 } else if (currentGenre === 'all') {
                     url = `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=ar&page=${page}`;
+                    console.log('🎭 تحميل الأفلام الشائعة...');
                 } else {
                     const genreId = getGenreId(currentGenre);
                     url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=ar&with_genres=${genreId}&page=${page}`;
+                    console.log('🎯 فلترة حسب النوع:', currentGenre, 'ID:', genreId);
                 }
 
+                console.log('🌐 استدعاء API:', url);
                 const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('✅ تم تحميل البيانات:', data);
 
                 if (data.results && data.results.length > 0) {
+                    console.log(`🎬 عرض ${data.results.length} فيلم...`);
                     displayMovies(data.results);
                     updatePagination(data.page, data.total_pages);
                 } else {
+                    console.log('❌ لا توجد نتائج');
                     moviesGrid.innerHTML = '<div class="no-results">لم يتم العثور على أفلام</div>';
                 }
             } catch (error) {
-                console.error('Error loading movies:', error);
+                console.error('❌ خطأ في تحميل الأفلام:', error);
                 moviesGrid.innerHTML = `
                     <div class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <p>حدث خطأ في تحميل الأفلام</p>
+                        <p>حدث خطأ في تحميل الأفلام: ${error.message}</p>
                         <button class="retry-btn" onclick="loadMovies()">إعادة المحاولة</button>
                     </div>
                 `;
             } finally {
                 loadingEl.style.display = 'none';
+                console.log('✅ انتهى تحميل الأفلام');
             }
         }
 
@@ -1618,13 +1648,23 @@
 
         // Display movies in grid
         function displayMovies(movies) {
+            console.log('🎭 عرض الأفلام:', movies.length, 'فيلم');
+            
             const moviesGrid = document.getElementById('moviesGrid');
+            if (!moviesGrid) {
+                console.error('❌ عنصر moviesGrid غير موجود');
+                return;
+            }
+            
             moviesGrid.innerHTML = '';
 
-            movies.forEach(movie => {
+            movies.forEach((movie, index) => {
+                console.log(`🎬 إنشاء كارت للفيلم ${index + 1}:`, movie.title);
                 const movieCard = createMovieCard(movie);
                 moviesGrid.appendChild(movieCard);
             });
+            
+            console.log('✅ تم عرض جميع الأفلام بنجاح');
         }
 
         // Create movie card element
