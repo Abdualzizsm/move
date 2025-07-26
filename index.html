@@ -482,6 +482,29 @@
             color: #ff6b6b;
         }
 
+        .controls-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .genre-filter {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .genre-filter option {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+
         .notification {
             position: fixed;
             top: 100px;
@@ -812,7 +835,10 @@
                     <i class="fas fa-search"></i>
                 </button>
             </div>
-            <div>
+            <div class="controls-container">
+                <select class="genre-filter" id="genreFilter">
+                    <option value="all">جميع الأنواع</option>
+                </select>
                 <button class="favorites-btn" onclick="toggleFavorites()" title="المفضلة">
                     <i class="fas fa-heart"></i>
                 </button>
@@ -913,6 +939,7 @@
         let currentGenre = 'all';
         let currentSearchQuery = '';
         let showingFavorites = false;
+        let adBlockEnabled = true; // تفعيل الحماية من الإعلانات بشكل افتراضي
 
         // Load movies when page loads with ultimate protection
         document.addEventListener('DOMContentLoaded', function() {
@@ -967,6 +994,7 @@
 
             loadMovies();
             setupSearch();
+            loadGenres();
             setupAdBlocker();
             
             // تطبيق حماية دورية مكثفة جداً
@@ -996,6 +1024,60 @@
             
             console.log('🛡️ تم تفعيل الحماية المطلقة للموقع بنجاح');
         });
+
+        // Setup ad blocker functionality
+        function setupAdBlocker() {
+            console.log('🛡️ إعداد نظام الحماية من الإعلانات...');
+            
+            // تطبيق الحماية الأولية
+            protectVideoPlayer();
+            blockAllAdsInPage();
+            
+            // إضافة زر التحكم في الحماية
+            const adBlockBtn = document.getElementById('adBlockBtn');
+            if (adBlockBtn) {
+                adBlockBtn.classList.add('enabled');
+                adBlockBtn.title = 'الحماية مفعلة';
+            }
+            
+            console.log('✅ تم إعداد نظام الحماية بنجاح');
+        }
+
+        // Load movie genres
+        function loadGenres() {
+            // تحديد الأنواع يدوياً لتجنب استهلاك API إضافي
+            const genres = [
+                { id: 'all', name: 'جميع الأنواع' },
+                { id: 28, name: 'أكشن' },
+                { id: 12, name: 'مغامرة' },
+                { id: 16, name: 'رسوم متحركة' },
+                { id: 35, name: 'كوميديا' },
+                { id: 80, name: 'جريمة' },
+                { id: 99, name: 'وثائقي' },
+                { id: 18, name: 'دراما' },
+                { id: 14, name: 'فانتازيا' },
+                { id: 27, name: 'رعب' },
+                { id: 878, name: 'خيال علمي' },
+                { id: 53, name: 'إثارة' }
+            ];
+
+            const genreFilter = document.getElementById('genreFilter');
+            if (genreFilter) {
+                genreFilter.innerHTML = '';
+                genres.forEach(genre => {
+                    const option = document.createElement('option');
+                    option.value = genre.id;
+                    option.textContent = genre.name;
+                    genreFilter.appendChild(option);
+                });
+
+                genreFilter.addEventListener('change', function() {
+                    currentGenre = this.value;
+                    currentPage = 1;
+                    loadMovies();
+                });
+            }
+        }
 
         // حماية شاملة لكامل الصفحة
         function blockAllAdsInPage() {
