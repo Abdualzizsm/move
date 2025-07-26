@@ -2,11 +2,19 @@
   "name": "movie-village",
   "version": "1.0.0",
   "description": "موقع أفلام احترافي مجاني مع واجهة مشابهة لـ Netflix",
-  "main": "index.html",
+  "main": "server.js",
   "scripts": {
-    "start": "python3 -m http.server 8000",
-    "dev": "npx live-server",
-    "preview": "python3 -m http.server 3000"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'Static site - no build required'",
+    "preview": "node server.js"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
   },
   "keywords": [
     "movies",
@@ -30,9 +38,5 @@
   "bugs": {
     "url": "https://github.com/Abdualzizsm/move/issues"
   },
-  "dependencies": {},
-  "devDependencies": {},
-  "engines": {
-    "node": ">=14.0.0"
-  }
+  "devDependencies": {}
 }
